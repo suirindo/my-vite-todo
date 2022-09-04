@@ -2,21 +2,15 @@
 import { ref } from 'vue';
 import { useTodoList } from '/src/composables/useTodoList.js';
 const todoRef = ref('');
-const todoListRef = ref([]);
-const ls = localStorage.todoList;
-todoListRef.value = ls ? JSON.parse(ls) : [];
+const isEditRef = ref(false); //編集ボタンを押したときにtrueにする
+const { todoListRef, add, show, edit, del, check } = useTodoList();
+
 const addTodo = () => {
   // IDをミリ秒で登録する
-  const id = new Date().getTime();
-  // 配列に入力TODOを格納
-  todoListRef.value.push({ id: id, task: todoRef.value });
-  // ローカルストレージに登録 ローカルストレージに普通に登録するとただの文字列になるため、配列やオブジェクトを登録する場合はJSONコードにシリアライズ化する必要がある
-  localStorage.todoList = JSON.stringify(todoListRef.value);
+  add(todoRef.value);
   // 登録後は入力を空にする
   todoRef.value = '';
 };
-const isEditRef = ref(false); //編集ボタンを押したときにtrueにする
-let editId = -1;
 
 // showTodoで受け取ったIDを利用して、入力欄に編集するTODOを表示させる
 // v-modelで連動している変数todoRefに値を入れる
@@ -26,38 +20,21 @@ const showTodo = (id) => {
   // 配列（todoListRef.value）から引数のidと同じ要素を検索する
   // findの「（todo）」には配列の要素が引数として順番に入る
   // 「todo.id === id」がtrueならその時点の要素:todoが返る
-  const todo = todoListRef.value.find((todo) => todo.id === id);
-  todoRef.value = todo.task; //取得した要素からtaskを取り出す
+  todoRef.value = show(id); //取得した要素からtaskを取り出す
   isEditRef.value = true;
-  editId = id;
 };
 
 const editTodo = () => {
-  //変更ボタンを押した
-  // 編集対象となるTODOを取得
-  const todo = todoListRef.value.find((todo) => todo.id === editId);
-
-  // TODOリストから編集対象のインデックスを取得
-  const idx = todoListRef.value.findIndex((todo) => todo.id === editId);
-
-  // taskを編集後のTODOで置き換え
-  todo.task = todoRef.value;
-
-  // splice関数でインデックスを元に対象オブジェクトを置き換え
-  todoListRef.value.splice(idx, 1, todo);
-
-  localStorage.todoList = JSON.stringify(todoListRef.value); // ローカルストレージに保存
-  isEditRef.value = false; //編集モードを解除
-  editIndex = -1; // IDを初期値に戻す
+  edit(todoRef.value);
+  isEditRef.value = false;
   todoRef.value = '';
 };
 const deleteTodo = (id) => {
-  const { todo, idx } = useTodoList(id);
-  const delMsg = '「' + todo.task + '」を削除しますか？';
-  if (!confirm(delMsg)) return;
+  del(id);
+};
 
-  todoListRef.value.splice(idx, 1);
-  localStorage.todoList = JSON.stringify(todoListRef.value);
+const changeCheck = (id) => {
+  check(id);
 };
 </script>
 <template>
@@ -74,8 +51,14 @@ const deleteTodo = (id) => {
 
   <div class="box-list">
     <div class="todo_list" v-for="todo in todoListRef" :key="todo.id">
-      <div class="todo">
-        <input type="checkbox" class="check" /><label>{{ todo.task }}</label>
+      <div class="todo" :class="{ fin: todo.checked }">
+        <input
+          type="checkbox"
+          class="check"
+          @change="changeCheck(todo.id)"
+          :checked="todo.checked"
+        />
+        <label>{{ todo.task }}</label>
       </div>
       <div class="btns">
         <button class="btn green" @click="showTodo(todo.id)">編</button>
@@ -143,5 +126,11 @@ const deleteTodo = (id) => {
   color: #fff;
   text-align: center;
   font-size: 14px;
+}
+
+.fin {
+  text-decoration: line-through;
+  background-color: #ddd;
+  color: #777;
 }
 </style>

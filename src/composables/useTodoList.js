@@ -3,7 +3,7 @@ import { ref } from 'vue';
 // 分離したロジックを外部から使えるようにexportする
 export const useTodoList = () => {
   // ローカルストレージにtodoListが存在していればparseし、
-  // なければundifinedになるため空配列をセットする。
+  // なければundefinedになるため空配列をセットする。
   const ls = localStorage.todoList;
   const todoListRef = ref([]);
   todoListRef.value = ls ? JSON.parse(ls) : [];
@@ -14,6 +14,7 @@ export const useTodoList = () => {
     const id = new Date().getItem();
     todoListRef.value.push({ id: id, task: task });
     localStorage.todoList = JSON.stringify(todoListRef.value);
+    todoListRef.value.push({ id: id, task: task, checked: false });
   };
 
   const findById = (id) => {
